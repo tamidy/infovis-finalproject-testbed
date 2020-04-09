@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <head>
 	<title> DMV Weather Data </title>
@@ -25,84 +26,550 @@
 </body>
 
 <script type="text/javascript">
-	var au = [-77.106342, 38.956379]; //Centering the map at AU (longitude, latitude)
+	//Centering the map at AU (longitude, latitude)
+	var au = [-77.106342, 38.956379];
 
-	//Mapboxgl object, placeholder to render a map
-	//Tiles represent the world, the base layer on which we'll draw other shapes and visualizations
+	//Mapboxgl object, placeholder to render a map, tiles represent the world, the base layer on which we'll draw other shapes and visualizations
 	mapboxgl.accessToken = 'pk.eyJ1IjoiamFnb2R3aW4iLCJhIjoiY2lnOGQxaDhiMDZzMXZkbHYzZmN4ZzdsYiJ9.Uwh_L37P-qUoeC-MBSDteA';
 
+	//Creating the map
 	var map = new mapboxgl.Map({
 	    container: 'map',
 	    center: au,
 	    maxZoom: 10,
 	    minZoom: 3,
-	    zoom: 7,
+	    zoom: 3,
 	    style: 'mapbox://styles/mapbox/light-v10' //light-v10 - light greyscale
 	});
 
-	//Place for our d3 marks to appear, get Mapbox map canvas container
+	//Place for our d3 marks to appear
+	//Get Mapbox map canvas container
 	var canvas = map.getCanvasContainer();
 
-	//Overlay d3 on the map, svg as a layer on the map
+	//Overlay d3 on the map
+	//svg as a layer on the map
 	var svg = d3.select(canvas).append("svg");
-	var g = d3.select(svg).append("g");
+	var g = svg.append("g");
+	var vertices = d3.map(); //New d3 map to hold vertices keyed by ID to easily retrieve them
+	var euroVertices = d3.map();
+	var drawNetwork = true; //Keeps track of the visibility state
+	var drawEuroNet = true;
+	var uni = false;
+	var indep = true;
 
-	//Uploading data file, then() tells d3 to wait for file before proceeding with a callback function that manipulates the data
-	d3.csv('data/2059551.csv').then(ready);
+	//Uploading data files, then() tells d3 to wait for file before proceeding with a callback function that manipulates the data
+	//Promise.all() passes an array of objects to the callback function ready(), one for each of the files
+	Promise.all([
+		d3.csv('data/gridkit_north_america-highvoltage-vertices.csv'),
+		d3.csv('data/gridkit_north_america-highvoltage-links.csv'),
+        d3.json('data/states.json'),
+		d3.csv('data/gridkit_europe-highvoltage-vertices.csv'),
+		d3.csv('data/gridkit_europe-highvoltage-links.csv'),
+        d3.json('data/eu-countries.geo.json')])
+	.then(ready);
 
-  function ready(data) { //Argument is name of the data returned from deferred function
+  function ready(data) {
 
-		//Variable to hold the stations' locations as nodes
-		var nodes = data[0];
+  	//Assigning vars to the array
+  	var nodes = data[0];
+    var links = data[1];
+    var states = data[2];
+    var euroNodes = data[3];
+    var euroLinks = data[4];
+    var euroCountries = data[5];
+
+    var nodeFeatures = [];
+    var drawstates = true;
+    var drawBins = true;
+
+    var euroNodeFeatures = [];
+    var drawCountries = true;
+    var drawEuroBins = true;
+
+  	//We need a list of the different values that the attitude can have
+  	//Looking through the file and making a list of of all the different values
+  	//Giving an object organized by the different values that typ can have
+  	var types = d3.nest()
+  		.key(function(d) {
+  			return d.typ;
+	    })
+	    .entries(nodes)
+	    .map(function(d) { //Grab all unique keys that nested_data.key can have, using a JS array map function to collect unique keys from nested_array
+	    	return d.key;
+    	});
+
+    //Color scale
+    var hue = d3.scaleOrdinal(d3.schemeCategory10)
+  		.domain(types);
+
+    //Drawing lines between the nodes
+    g.selectAll('.na-lines')
+	    .data(links)
+	    .enter()
+	    .append('line')
+		    .classed('na-lines', true)
+		    .style("stroke-weight", 5)
+		    .style('stroke', 'gray')
+		    .style('opacity', 0.5);
 
   	//Creates a circle svg mark for each of the power grid notes
     nodes.forEach(function(d) {
-			d.LngLat = [+d.lon, +d.lat];
+    	d.links = 0; //Initialize number of links
+    	vertices.set(+d.v_id, d);
+    	d.LngLat = [+d.lon, +d.lat];
+    	nodeFeatures.push(turf.point([+d.lon, +d.lat], d));
     });
+    nodeFeatures = turf.featureCollection(nodeFeatures);
 
-    //Red circles with partial opacity
-    g.selectAll('circle')
+    //Make a list of all the power grid nodes that are contained within each state in a new attribute called ID
+    var chorostates = turf.collect(states, nodeFeatures, 'v_id', 'ID');
+		chorostates.features.forEach(function(d){
+			d.properties.count = d.properties.ID.length;
+		});
+
+	//Creating a color scale for d3 that returns a color from a range of values based on the number of nodes from our domain of node counts
+	var statesExtent = d3.extent(chorostates.features, function (d) {
+ 			return d.properties.count;
+	});
+
+    //Showing the states
+    map.addSource('states-source', {
+	    'type':'geojson',
+	    'data': chorostates
+	});
+	var statesLayer = map.addLayer({
+        'id': 'states-fill',
+        'type': 'fill',
+        'source': 'states-source',
+        'paint': {
+            "fill-color": {
+              "property": "count",
+              "stops": [
+                [statesExtent[0], '#ffeda0'],
+                [statesExtent[1]*0.5, '#feb24c'],
+                [statesExtent[1], '#f03b20']
+              ]
+            },
+            'fill-opacity': 0.4
+        }
+	});
+	map.addLayer({
+	    'id': 'states-boundary',
+	    'type': 'line',
+	    'source': 'states-source',
+	    'paint': {
+	        'line-color':'rgb(100,100,255)'
+	    }
+	});
+
+	//Toggles the colors of the states
+	d3.select('#statebutton')
+	    .on('click', function (){
+	        if(drawstates){
+	            map.setLayoutProperty('states-fill', 'visibility', 'visible');
+	        }
+	        else{
+	            map.setLayoutProperty('states-fill', 'visibility', 'none');
+	        }
+	    drawstates = !drawstates;
+	});
+
+	//Adding a grid
+	var bbox = turf.bbox(nodeFeatures);
+	var cellSize = 200;
+	var units = 'kilometers';
+	var options = {};
+	options.units = units;
+
+	var grid = turf.squareGrid(bbox, cellSize, options);
+	var bins = turf.collect(grid, nodeFeatures, 'v_id', 'ID')
+	bins.features = bins.features.filter(function(d) {
+		return d.properties.ID.length > 0;
+	})
+
+	//Using dark colors so bins stand out more
+	var magma = d3.scaleLinear()
+	    .domain(d3.extent(bins.features.map(function(d) {
+	        return d.properties.ID.length;
+	    })))
+	    .range([1,0]);
+
+	function getBinColor(d) {
+	    return d3.interpolateMagma(magma(d));
+	}
+	bins.features.forEach(function(d) {
+	    d.properties['feature-color'] = getBinColor(d.properties.ID.length);
+	});
+
+	map.addSource('grid-source', {
+	    'type':'geojson',
+	    'data': bins
+	});
+	map.addLayer({
+	    'id': 'grid-boundary',
+	    'type': 'line',
+	    'source': 'grid-source',
+	    'paint': {
+	        'line-color':'purple'
+	    }
+	});
+	map.addLayer({ //Shows the bins based on our data source
+	    'id': 'grid-fill',
+	    'type': 'fill',
+	    'source': 'grid-source',
+	    'paint': {
+          "fill-color": [
+              "get", "feature-color"
+          	]
+      	},
+	    'layout': {
+	        'visibility': 'visible'
+	    }
+	});
+
+	//Toggles the bins
+	d3.select('#binbutton')
+	    .on('click', function (){
+	        if(drawBins){
+	            map.setLayoutProperty('grid-fill', 'visibility', 'visible');
+	        }
+	        else{
+	            map.setLayoutProperty('grid-fill', 'visibility', 'none');
+	        }
+	    drawBins = !drawBins;
+	});
+
+    //Iterate over links, look up start and end points in map
+    //Save long and lat of these points as attributes on the link itself so we can easily adjust their position on map zoom
+    links.forEach(function(d){
+	    var start = vertices.get(+d.v_id_1);
+	    var end = vertices.get(+d.v_id_2);
+	    start.links += 1; //Counting the number of links
+		end.links += 1;
+	    d.start = [+start.lon,	 +start.lat];
+	    d.end = [+end.lon, +end.lat];
+	});
+
+    //Scaling the radi of the nodes by its number of links
+    var nodeRadius = d3.scaleLinear()
+	    .domain(d3.extent(nodes.map(function(d) {
+	            return +d.links;
+	        })))
+	    .rangeRound([2,15]);
+
+	var uniformRadius = d3.scaleLinear()
+		.domain(d3.extent(nodes.concat(euroNodes).map(function(d){
+			return +d.links;
+		})))
+		.rangeRound([2,15]);
+
+	var uniformLinkThickness = d3.scaleLinear()
+		.domain(d3.extent(links.concat(euroLinks).map(function(d) {
+			return +d.voltage;
+		})))
+		.rangeRound([1,5]);
+
+    //Color of the nodes
+    g.selectAll('.na-circles')
         .data(nodes)
-        .enter().append('circle')
+        .enter()
+        .append('circle')
+        	.classed("na-circles", true)
             .style("opacity", 0.6)
-            .style("fill", 'red')
-            .attr('r', 2);
+            .style("fill", function(d) {
+            	return hue(d.typ);
+            })
+            .attr('r', function(d) {
+            	return nodeRadius(d.links);
+          	})
 
-    g.selectAll('circle')
-  	.data(nodes)
-    .enter()
-    .append('circle')
-        .style("opacity", 0.6)
-        .style("fill", 'red')
-        .attr('r', 2);
+
+    d3.select('#uniformButton')
+	    .on('click', function () {
+
+	});
+
+	d3.select('#independentButton')
+	    .on('click', function () {
+
+	});
+
+
+
+
+    //*************Europe*************
+    var euroTypes = d3.nest()
+  		.key(function(d) {
+  			return d.typ;
+	    })
+	    .entries(euroNodes)
+	    .map(function(d) { //Grab all unique keys that nested_data.key can have, using a JS array map function to collect unique keys from nested_array
+	    	return d.key;
+    	});
+
+    //Color scale
+    var hue = d3.scaleOrdinal(d3.schemeCategory10)
+  		.domain(euroTypes);
+
+  	var eurothickness = d3.scaleLinear()
+  		.domain(d3.extent(euroLinks.map(function(d) {
+  			return +d.voltage;
+  		})))
+  		.rangeRound([1,5]);
+
+    //Drawing lines between the nodes
+    g.selectAll('.euro-line')
+	    .data(euroLinks)
+        .enter()
+        .append('line')
+        	.classed('euro-line', true)
+        	.style('stroke-width', function(d) {
+        		if (d.voltage == 0) {
+        			return 1;
+        		} else {
+        			return eurothickness(+d.voltage);
+        		}
+        	})
+	        .style('stroke', function(d) {
+	        	if (+d.voltage == 0) {
+	        		return 'red';
+	        	} else {
+	        		return 'gray';
+	        	}
+	        })
+	        .style('opacity', 0.5);
+
+    //Nodes for Europe
+    euroNodes.forEach(function(d) {
+    	d.links = 0; //Initialize number of links
+    	euroVertices.set(+d.v_id, d);
+    	d.LngLat = [+d.lon, +d.lat];
+    	euroNodeFeatures.push(turf.point([+d.lon, +d.lat], d));
+    });
+    euroNodeFeatures = turf.featureCollection(euroNodeFeatures);
+
+    //Make a list of all the power grid nodes that are contained within each state in a new attribute called ID
+    var choroEuroCountries = turf.collect(euroCountries, euroNodeFeatures, 'v_id', 'ID');
+		choroEuroCountries.features.forEach(function(d){
+		d.properties.count = d.properties.ID.length;
+	});
+
+	//Creating a color scale for d3 that returns a color from a range of values based on the number of nodes from our domain of node counts
+	var countriesExtent = d3.extent(choroEuroCountries.features, function (d) {
+ 			return d.properties.count;
+	});
+
+    //Showing the countries
+    map.addSource('euro-source', {
+	    'type':'geojson',
+	    'data': choroEuroCountries
+	});
+	var countriesLayer = map.addLayer({
+        'id': 'euro-fill',
+        'type': 'fill',
+        'source': 'euro-source',
+        'paint': {
+            "fill-color": {
+              "property": "count",
+              "stops": [
+                [countriesExtent[0], '#ffeda0'],
+                [countriesExtent[1]*0.5, '#feb24c'],
+                [countriesExtent[1], '#f03b20']
+              ]
+            },
+            'fill-opacity': 0.4
+        }
+	});
+	map.addLayer({
+	    'id': 'euro-boundary',
+	    'type': 'line',
+	    'source': 'euro-source',
+	    'paint': {
+	        'line-color':'rgb(100,100,255)'
+	    }
+	});
+
+	//Toggles the colors of the countries
+	d3.select('#euroCountriesbutton')
+	    .on('click', function () {
+	        if(drawCountries){
+	            map.setLayoutProperty('euro-fill', 'visibility', 'visible');
+	        }
+	        else{
+	            map.setLayoutProperty('euro-fill', 'visibility', 'none');
+	        }
+	    drawCountries = !drawCountries;
+	});
+
+	var euroBbox = turf.bbox(euroNodeFeatures);
+	var euroCellSize = 200;
+	var euroUnits = 'kilometers';
+	var euroOptions = {};
+	euroOptions.units = euroUnits;
+
+	var euroGrid = turf.squareGrid(euroBbox, euroCellSize, euroOptions);
+	var euroBins = turf.collect(euroGrid, euroNodeFeatures, 'v_id', 'ID')
+	euroBins.features = euroBins.features.filter(function(d) {
+		return d.properties.ID.length > 0;
+	})
+
+	var euroMagma = d3.scaleLinear()
+	    .domain(d3.extent(euroBins.features.map(function(d) {
+	        return d.properties.ID.length;
+	    })))
+	    .range([1,0]);
+
+	function getEuroBinColor(d) {
+	    return d3.interpolateMagma(magma(d));
+	}
+	euroBins.features.forEach(function(d) {
+	    d.properties['feature-color'] = getEuroBinColor(d.properties.ID.length);
+	});
+
+	map.addSource('euro-grid-source', {
+	    'type':'geojson',
+	    'data': euroBins
+	});
+	map.addLayer({
+	    'id': 'euro-grid-boundary',
+	    'type': 'line',
+	    'source': 'euro-grid-source',
+	    'paint': {
+	        'line-color':'purple'
+	    }
+	});
+	map.addLayer({ //Shows the bins based on our data source
+	    'id': 'euro-grid-fill',
+	    'type': 'fill',
+	    'source': 'euro-grid-source',
+	    'paint': {
+          "fill-color": [
+              "get", "feature-color"
+          	]
+      	},
+	    'layout': {
+	        'visibility': 'visible'
+	    }
+	});
+
+	//Toggles the bins
+	d3.select('#euroBinbutton')
+	    .on('click', function (){
+	        if(drawEuroBins){
+	            map.setLayoutProperty('euro-grid-fill', 'visibility', 'visible');
+	        }
+	        else{
+	            map.setLayoutProperty('euro-grid-fill', 'visibility', 'none');
+	        }
+	    drawEuroBins = !drawEuroBins;
+	});
+
+    //Links for Europe
+    euroLinks.forEach(function(d) {
+	    var start = euroVertices.get(+d.v_id_1);
+	    var end = euroVertices.get(+d.v_id_2);
+	    start.links += 1; //Counting the number of links
+		end.links += 1;
+	    d.start = [+start.lon, +start.lat];
+	    d.end = [+end.lon, +end.lat];
+	});
+
+    //Radi for the European nodes
+    var euroNodeRadius = d3.scaleLinear()
+    	.domain(d3.extent(euroNodes.map(function(d) {
+    		return +d.links;
+    	})))
+    	.rangeRound([2,15]);
+
+    g.selectAll('.euro-circles')
+        .data(euroNodes)
+        .enter()
+        .append('circle')
+        	.classed('euro-circles', true)
+            .style("opacity", 0.6)
+            .style("fill", function(d) {
+            	return hue(d.typ);
+            })
+            .attr('r', function(d) {
+                return euroNodeRadius(d.links);
+          	})
 
   	//Ensuring the locations are set correctly and updated when the map view changes
   	//Event listeners for the map so that the circles are updated when the user interacts with the map
     map.on("viewreset", function() {
         updateNodes();
+        updateLinks();
     });
     map.on("movestart", function() {
-    console.log("move started");
+    	console.log("move started");
         g.attr("visibility", "hidden");
     });
     map.on("moveend", function() {
         updateNodes();
+        updateLinks();
         g.attr("visibility", "visible");
     });
 
     updateNodes();
+    updateLinks();
+
 } //end ready()
 
+//Listener to the button, we check the value of drawNetwork and make the network svg elements visible or hidden
+d3.select('#netbutton')
+  .on('click', function (){
+      if(drawNetwork){
+          d3.selectAll('circle')
+              .attr('visibility', 'hidden');
+          d3.selectAll('line')
+              .attr('visibility', 'hidden');
+      }
+      else{
+          d3.selectAll('circle')
+              .attr('visibility', 'visible');
+          d3.selectAll('line')
+              .attr('visibility', 'visible');
+      }
+      drawNetwork = !drawNetwork;
+});
+
+//*************Europe*************
+d3.select('#euroNetbutton')
+  .on('click', function (){
+      if(drawEuroNet){
+          d3.selectAll('circle')
+              .attr('visibility', 'hidden');
+          d3.selectAll('line')
+              .attr('visibility', 'hidden');
+      }
+      else{
+          d3.selectAll('circle')
+              .attr('visibility', 'visible');
+          d3.selectAll('line')
+              .attr('visibility', 'visible');
+      }
+      drawEuroNet= !drawEuroNet;
+});
+
+function updateLinks() { //A listener for the map zoom
+    g.selectAll('line')
+    .attr('x1', function(d){return project(d.start).x})
+    .attr('y1', function(d){return project(d.start).y})
+    .attr('x2', function(d){return project(d.end).x})
+    .attr('y2', function(d){return project(d.end).y});
+}
+
 function updateNodes() { //Calls each time the map stops moving, then draws the circles in the updated pixel location
+
 	//Converting long and lat to the correct pixel locations on the screen
-  console.log("update positions");
-  g.selectAll('circle')
-      .attr('cx', function(d){return project(d.LngLat).x})
-      .attr('cy', function(d){return project(d.LngLat).y});
-} //end updateNodes()
+    console.log("update positions");
+    g.selectAll('circle')
+        .attr('cx', function(d){return project(d.LngLat).x})
+        .attr('cy', function(d){return project(d.LngLat).y});
+}
 
 function project(d) {
-	return map.project(new mapboxgl.LngLat(+d[0], +d[1]));
+    return map.project(new mapboxgl.LngLat(+d[0], +d[1]));
 }
 
 </script>
