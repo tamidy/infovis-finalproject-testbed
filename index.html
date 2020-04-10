@@ -35,7 +35,7 @@
     container: 'map',
     center: au,
     maxZoom: 10,
-    minZoom: 8,
+    minZoom: 6,
     zoom: 8,
     style: 'mapbox://styles/mapbox/light-v10' //light-v10 - light greyscale
 	});
@@ -64,7 +64,7 @@
       .enter().append('circle')
         .style("opacity", 0.6)
         .style("fill", 'red')
-        .attr('r', 2);
+        .attr('r', 3);
 
   	//Ensuring the locations are set correctly and updated when the map view changes
   	//Event listeners for the map so that the circles are updated when the user interacts with the map
