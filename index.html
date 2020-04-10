@@ -49,7 +49,8 @@
 	var g = svg.append("g");
 
 	//Uploading data file, then() tells d3 to wait for file before proceeding with a callback function that manipulates the data
-	d3.csv('data/firstdataset.csv').then(ready);
+	d3.csv('data/firstdataset.csv')
+		.then(ready);
 
   function ready(nodes) { //Argument is name of the data returned from deferred function
 
@@ -61,8 +62,7 @@
     //Red circles with partial opacity
     g.selectAll('circle')
       .data(nodes)
-      .enter()
-			.append('circle')
+      .enter().append('circle')
         .style("opacity", 0.6)
         .style("fill", 'red')
         .attr('r', 2);
