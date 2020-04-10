@@ -1,14 +1,15 @@
+<!DOCTYPE html>
 <html>
 <head>
-	<title> DMV Weather Data </title>
+	<title>DMV Weather Data</title>
 	<script src="https://d3js.org/d3.v5.min.js"></script>
-	<script src='https://api.mapbox.com/mapbox-gl-js/v1.7.0/mapbox-gl.js'></script>
-	<link href='https://api.mapbox.com/mapbox-gl-js/v1.7.0/mapbox-gl.css' rel='stylesheet' />
+	<script src="https://api.mapbox.com/mapbox-gl-js/v1.7.0/mapbox-gl.js"></script>
+	<link href="https://api.mapbox.com/mapbox-gl-js/v1.7.0/mapbox-gl.css" rel="stylesheet" />
 </head>
 
 <style type="text/css">
 	#map {
-    position:absolute;
+    position: absolute;
     width: 100%;
     height: 100%;
 	}
@@ -21,7 +22,7 @@
 
 <body>
 	<hr>
-	<div id='map' style='width: 1000px; height: 800px;'></div>
+	<div id="map" style="width: 1000px; height: 800px;"> </div>
 </body>
 
 <script type="text/javascript">
@@ -45,10 +46,10 @@
 
 	//Overlay d3 on the map, svg as a layer on the map
 	var svg = d3.select(canvas).append("svg");
-	var g = d3.select(svg).append("g");
+	var g = svg.append("g");
 
 	//Uploading data file, then() tells d3 to wait for file before proceeding with a callback function that manipulates the data
-	d3.csv('data/2059551.csv').then(ready);
+	d3.csv('data/firstdataset.csv').then(ready);
 
   function ready(nodes) { //Argument is name of the data returned from deferred function
 
@@ -60,10 +61,11 @@
     //Red circles with partial opacity
     g.selectAll('circle')
       .data(nodes)
-      .enter().append('circle')
-          .style("opacity", 0.6)
-          .style("fill", 'red')
-          .attr('r', 2);
+      .enter()
+			.append('circle')
+        .style("opacity", 0.6)
+        .style("fill", 'red')
+        .attr('r', 2);
 
   	//Ensuring the locations are set correctly and updated when the map view changes
   	//Event listeners for the map so that the circles are updated when the user interacts with the map
@@ -71,6 +73,7 @@
       updateNodes();
     });
     map.on("movestart", function() {
+			console.log("move started");
       g.attr("visibility", "hidden");
     });
     map.on("moveend", function() {
@@ -83,6 +86,7 @@
 
 function updateNodes() { //Calls each time the map stops moving, then draws the circles in the updated pixel location
 	//Converting long and lat to the correct pixel locations on the screen
+	console.log("update positions");
   g.selectAll('circle')
       .attr('cx', function(d) {return project(d.LngLat).x})
       .attr('cy', function(d) {return project(d.LngLat).y});
