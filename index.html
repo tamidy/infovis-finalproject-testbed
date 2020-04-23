@@ -65,8 +65,14 @@
         .style("opacity", 0.6)
         .style("fill", 'red')
         .attr('r', 6)
-				.on("mouseover", handleMouseOver)
-				.on("mouseout", handleMouseOut);
+				.on('mouseover', function(d) {
+				    var nodeSelection = d3.select(this).style({fill:'blue'});
+				    //nodeSelection.select("text").style({opacity:'1.0'});
+				})
+
+
+				//.on("mouseover", handleMouseOver)
+				//.on("mouseout", handleMouseOut);
 
 		/*
 		svg.selectAll('circle')
@@ -114,7 +120,8 @@ function handleMouseOver(d, i) {
 
 	//Select element, change color and size
 	d3.select(this).attr({
-		fill: "orange"
+		fill: "orange",
+		r: 10
 	});
 
 	/*
@@ -134,7 +141,8 @@ function handleMouseOver(d, i) {
 function handleMouseOut(d, i) {
 	//Select element, change color back to normal
 	d3.select(this).attr({
-		fill: "red"
+		fill: "red",
+		r: 6
 	});
 
 	/*
