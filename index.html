@@ -65,25 +65,48 @@
         .style("opacity", 0.6)
         .style("fill", 'red')
         .attr('r', 6)
-				.on('mouseover', function(d) {
-				    var nodeSelection = d3.select(this).style({"fill":'blue'});
-				    //nodeSelection.select("text").style({opacity:'1.0'});
-				})
-
-
-				//.on("mouseover", handleMouseOver)
-				//.on("mouseout", handleMouseOut);
-
-		/*
-		svg.selectAll('circle')
-			.data(nodes)
-			.enter().append('circle')
-        .style("opacity", 0.6)
-        .style("fill", 'red')
-        .attr('r', 3)
 				.on("mouseover", handleMouseOver)
 				.on("mouseout", handleMouseOut);
-				*/
+
+
+		/* FIXME: Hover
+		Reference: http://bl.ocks.org/WilliamQLiu/76ae20060e19bf42d774
+		*/
+		//Create Event Handlers for mouse
+		var handleMouseOver = function(d) {
+
+			//Select element, change color and size
+			d3.select(this).attr({
+				fill: "orange",
+				r: 10
+			});
+
+			/*
+			//Specify where to put label of text
+			svg.append("text").attr({
+				id: "t" + d.x + "-" + d.y + "-" + i,  //Create an id for text so we can select it later for removing on mouseout
+				x: function() { return xScale(d.x) - 30; },
+				y: function() { return yScale(d.y) - 15; }
+			})
+			.text(function() {
+				return [d.x, d.y];  // Value of the text
+			});
+
+			*/
+		}
+
+		var handleMouseOut = function(d) {
+			//Select element, change color back to normal
+			d3.select(this).attr({
+				fill: "red",
+				r: 6
+			});
+
+			/*
+			//Select text by id and then remove
+			d3.select("#t" + d.x + "-" + d.y + "-" + i).remove();  // Remove text location
+			*/
+		}
 
   	//Ensuring the locations are set correctly and updated when the map view changes
   	//Event listeners for the map so that the circles are updated when the user interacts with the map
@@ -110,45 +133,6 @@ function updateNodes() { //Calls each time the map stops moving, then draws the 
 
 function project(d) {
 	return map.project(new mapboxgl.LngLat(+d[0], +d[1]));
-}
-
-/* FIXME: Hover
-Reference: http://bl.ocks.org/WilliamQLiu/76ae20060e19bf42d774
-*/
-//Create Event Handlers for mouse
-function handleMouseOver(d, i) {
-
-	//Select element, change color and size
-	d3.select(this).attr({
-		fill: "orange",
-		r: 10
-	});
-
-	/*
-	//Specify where to put label of text
-	svg.append("text").attr({
-		id: "t" + d.x + "-" + d.y + "-" + i,  //Create an id for text so we can select it later for removing on mouseout
-		x: function() { return xScale(d.x) - 30; },
-		y: function() { return yScale(d.y) - 15; }
-	})
-	.text(function() {
-		return [d.x, d.y];  // Value of the text
-	});
-
-	*/
-}
-
-function handleMouseOut(d, i) {
-	//Select element, change color back to normal
-	d3.select(this).attr({
-		fill: "red",
-		r: 6
-	});
-
-	/*
-	//Select text by id and then remove
-	d3.select("#t" + d.x + "-" + d.y + "-" + i).remove();  // Remove text location
-	*/
 }
 
 </script>
