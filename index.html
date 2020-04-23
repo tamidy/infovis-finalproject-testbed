@@ -68,6 +68,7 @@
 				.on("mouseover", handleMouseOver)
 				.on("mouseout", handleMouseOut);
 
+		/*
 		svg.selectAll('circle')
 			.data(nodes)
 			.enter().append('circle')
@@ -76,6 +77,7 @@
         .attr('r', 3)
 				.on("mouseover", handleMouseOver)
 				.on("mouseout", handleMouseOut);
+				*/
 
   	//Ensuring the locations are set correctly and updated when the map view changes
   	//Event listeners for the map so that the circles are updated when the user interacts with the map
@@ -116,6 +118,7 @@ function handleMouseOver(d, i) {
 		r: radius * 2
 	});
 
+	/*
 	//Specify where to put label of text
 	svg.append("text").attr({
 		id: "t" + d.x + "-" + d.y + "-" + i,  //Create an id for text so we can select it later for removing on mouseout
@@ -125,6 +128,8 @@ function handleMouseOver(d, i) {
 	.text(function() {
 		return [d.x, d.y];  // Value of the text
 	});
+
+	*/
 }
 
 function handleMouseOut(d, i) {
@@ -134,8 +139,10 @@ function handleMouseOut(d, i) {
 		r: radius
 	});
 
+	/*
 	//Select text by id and then remove
 	d3.select("#t" + d.x + "-" + d.y + "-" + i).remove();  // Remove text location
+	*/
 }
 
 </script>
