@@ -64,6 +64,13 @@
       .enter().append('circle')
         .style("opacity", 0.6)
         .style("fill", 'red')
+        .attr('r', 3);
+
+		svg.selectAll('circle')
+			.data(nodes)
+			.enter().append('circle')
+        .style("opacity", 0.6)
+        .style("fill", 'red')
         .attr('r', 3)
 				.on("mouseover", handleMouseOver)
 				.on("mouseout", handleMouseOut);
@@ -114,7 +121,7 @@ function handleMouseOver(d, i) {
 		y: function() { return yScale(d.y) - 15; }
 	})
 	.text(function() {
-	return [d.x, d.y];  // Value of the text
+		return [d.x, d.y];  // Value of the text
 	});
 }
 
