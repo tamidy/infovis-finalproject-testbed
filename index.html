@@ -64,7 +64,9 @@
       .enter().append('circle')
         .style("opacity", 0.6)
         .style("fill", 'red')
-        .attr('r', 3);
+        .attr('r', 6)
+				.on("mouseover", handleMouseOver)
+				.on("mouseout", handleMouseOut);
 
 		svg.selectAll('circle')
 			.data(nodes)
