@@ -70,42 +70,24 @@
 
 
 		/* FIXME: Hover
-		Reference: http://bl.ocks.org/WilliamQLiu/76ae20060e19bf42d774
+		References:
+		http://bl.ocks.org/WilliamQLiu/76ae20060e19bf42d774
+		https://www.d3-graph-gallery.com/graph/bubblemap_tooltip.html
 		*/
 		//Create Event Handlers for mouse
 		var handleMouseOver = function(d) {
 
 			//Select element, change color and size
 			d3.select(this).attr({
-				fill: "orange",
-				r: 10
+				fill: "blue"
 			});
-
-			/*
-			//Specify where to put label of text
-			svg.append("text").attr({
-				id: "t" + d.x + "-" + d.y + "-" + i,  //Create an id for text so we can select it later for removing on mouseout
-				x: function() { return xScale(d.x) - 30; },
-				y: function() { return yScale(d.y) - 15; }
-			})
-			.text(function() {
-				return [d.x, d.y];  // Value of the text
-			});
-
-			*/
 		}
 
 		var handleMouseOut = function(d) {
 			//Select element, change color back to normal
 			d3.select(this).attr({
-				fill: "red",
-				r: 6
+				fill: "green"
 			});
-
-			/*
-			//Select text by id and then remove
-			d3.select("#t" + d.x + "-" + d.y + "-" + i).remove();  // Remove text location
-			*/
 		}
 
   	//Ensuring the locations are set correctly and updated when the map view changes
