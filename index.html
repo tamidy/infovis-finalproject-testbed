@@ -68,29 +68,6 @@
 				.on("mouseover", handleMouseOver)
 				.on("mouseout", handleMouseOut);
 
-
-		/* FIXME: Hover
-		References:
-		http://bl.ocks.org/WilliamQLiu/76ae20060e19bf42d774
-		https://www.d3-graph-gallery.com/graph/bubblemap_tooltip.html
-		https://stackoverflow.com/questions/20070919/adding-tooltip-in-d3-js-map
-		*/
-		//Create Event Handlers for mouse
-		var handleMouseOver = function(d) {
-
-			//Select element, change color and size
-			d3.select(this).attr({
-				fill: "blue"
-			});
-		}
-
-		var handleMouseOut = function(d) {
-			//Select element, change color back to normal
-			d3.select(this).attr({
-				fill: "green"
-			});
-		}
-
   	//Ensuring the locations are set correctly and updated when the map view changes
   	//Event listeners for the map so that the circles are updated when the user interacts with the map
     map.on("viewreset", function() {
@@ -116,6 +93,28 @@ function updateNodes() { //Calls each time the map stops moving, then draws the 
 
 function project(d) {
 	return map.project(new mapboxgl.LngLat(+d[0], +d[1]));
+}
+
+/* FIXME: Hover
+References:
+http://bl.ocks.org/WilliamQLiu/76ae20060e19bf42d774
+https://www.d3-graph-gallery.com/graph/bubblemap_tooltip.html
+https://stackoverflow.com/questions/20070919/adding-tooltip-in-d3-js-map
+*/
+//Create Event Handlers for mouse
+var handleMouseOver = function(d) {
+
+	//Select element, change color and size
+	d3.select(this).attr({
+		fill: "blue"
+	});
+}
+
+var handleMouseOut = function(d) {
+	//Select element, change color back to normal
+	d3.select(this).attr({
+		fill: "green"
+	});
 }
 
 </script>
